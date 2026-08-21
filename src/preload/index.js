@@ -94,6 +94,23 @@ const api = {
     const listener = (_e, data) => cb(data)
     ipcRenderer.on('convert:error', listener)
     return () => ipcRenderer.removeListener('convert:error', listener)
+  },
+  // 启动部分时间段加速任务（主进程会弹保存对话框），返回 { canceled }
+  speedVideo: (payload) => ipcRenderer.invoke('speed:start', payload),
+  onSpeedProgress: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('speed:progress', listener)
+    return () => ipcRenderer.removeListener('speed:progress', listener)
+  },
+  onSpeedDone: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('speed:done', listener)
+    return () => ipcRenderer.removeListener('speed:done', listener)
+  },
+  onSpeedError: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('speed:error', listener)
+    return () => ipcRenderer.removeListener('speed:error', listener)
   }
 }
 

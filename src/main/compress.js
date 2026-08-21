@@ -1,6 +1,6 @@
 import { spawn } from 'child_process'
 import { stat } from 'fs/promises'
-import ffmpegPath from 'ffmpeg-static'
+import ffmpegPath from './ffmpeg'
 
 let processing = false
 

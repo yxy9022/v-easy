@@ -1,5 +1,5 @@
 import { spawn } from 'child_process'
-import ffmpegPath from 'ffmpeg-static'
+import ffmpegPath from './ffmpeg'
 
 let processing = false
 

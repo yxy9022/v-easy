@@ -7,6 +7,7 @@ import { removeWatermark } from './watermark'
 import { mergeVideos } from './merge'
 import { compressVideo } from './compress'
 import { convertVideo } from './convert'
+import { speedVideo } from './speed'
 
 function createWindow() {
   // Create the browser window.
@@ -211,6 +212,31 @@ app.whenReady().then(() => {
     }
 
     await convertVideo(event, { ...payload, outputPath })
+    return { canceled: false }
+  })
+
+  // 视频加速：先让用户选择保存路径，再启动 ffmpeg 任务
+  ipcMain.handle('speed:start', async (event, payload) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    let outputPath = payload.outputPath
+
+    // 已预选保存目录：自动生成文件名
+    if (!outputPath && payload.outputDir) {
+      outputPath = join(payload.outputDir, `加速结果_${Date.now()}.mp4`)
+    }
+
+    // 未指定输出路径：弹出保存对话框
+    if (!outputPath) {
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: '保存加速后的视频',
+        defaultPath: `加速结果_${Date.now()}.mp4`,
+        filters: [{ name: 'MP4 视频', extensions: ['mp4'] }]
+      })
+      if (canceled || !filePath) return { canceled: true }
+      outputPath = filePath
+    }
+
+    await speedVideo(event, { ...payload, outputPath })
     return { canceled: false }
   })
 

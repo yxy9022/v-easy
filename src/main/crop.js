@@ -2,7 +2,7 @@ import { spawn } from 'child_process'
 import { join } from 'path'
 import { mkdtemp, writeFile, rm } from 'fs/promises'
 import { tmpdir } from 'os'
-import ffmpegPath from 'ffmpeg-static'
+import ffmpegPath from './ffmpeg'
 
 let processing = false
 

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import WatermarkPage from './pages/WatermarkPage.vue'
 import CropPage from './pages/CropPage.vue'
 import MergePage from './pages/MergePage.vue'
+import SpeedPage from './pages/SpeedPage.vue'
 import CompressPage from './pages/CompressPage.vue'
 import ConvertPage from './pages/ConvertPage.vue'
 
@@ -35,6 +36,12 @@ const menus = [
     label: '视频合并',
     icon: 'M9 3v18M3 12h12m0 0-4-4m4 4-4 4',
     component: MergePage
+  },
+  {
+    key: 'speed',
+    label: '视频加速',
+    icon: 'M5 5l7 7-7 7M13 5l7 7-7 7',
+    component: SpeedPage
   },
   {
     key: 'compress',
