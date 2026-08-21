@@ -77,6 +77,23 @@ const api = {
     const listener = (_e, data) => cb(data)
     ipcRenderer.on('compress:error', listener)
     return () => ipcRenderer.removeListener('compress:error', listener)
+  },
+  // 启动转码任务（主进程会弹保存对话框），返回 { canceled }
+  convertVideo: (payload) => ipcRenderer.invoke('convert:start', payload),
+  onConvertProgress: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('convert:progress', listener)
+    return () => ipcRenderer.removeListener('convert:progress', listener)
+  },
+  onConvertDone: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('convert:done', listener)
+    return () => ipcRenderer.removeListener('convert:done', listener)
+  },
+  onConvertError: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('convert:error', listener)
+    return () => ipcRenderer.removeListener('convert:error', listener)
   }
 }
 

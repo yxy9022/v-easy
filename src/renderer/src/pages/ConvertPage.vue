@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import UploadZone from '../components/UploadZone.vue'
 import { message, dialog } from '../utils/naive'
 
@@ -13,26 +13,118 @@ const videoHeight = ref(0)
 const sourceSize = ref(0)
 const outputSize = ref(0)
 
-const isCompressing = ref(false)
-const compressStatus = ref('idle') // idle | running | done | error
-const compressProgress = ref(0)
-const compressMessage = ref('')
+const isConverting = ref(false)
+const convertStatus = ref('idle') // idle | running | done | error
+const convertProgress = ref(0)
+const convertMessage = ref('')
 const outputDir = ref('')
 
-// ---------- 压缩设置 ----------
-const preset = ref('balanced') // high | balanced | small | custom
-const crf = ref(23)
+// ---------- 转码设置 ----------
+const format = ref('mp4')
+const vcodec = ref('h264')
+const acodec = ref('aac')
+const quality = ref(80)
 const resolution = ref('original') // original | 1080 | 720 | 480
-const codec = ref('h264')
-const speed = ref('fast') // fast | medium | slow
+const fps = ref(0) // 0=原始 | 24 | 30 | 60
 const keepAudio = ref(true)
 
-// 快捷档位：点击即设置 CRF 与分辨率
-const qualityPresets = [
-  { key: 'high', label: '高质量', crf: 18, res: 'original', tip: '画质接近原片，体积略小' },
-  { key: 'balanced', label: '均衡', crf: 23, res: 'original', tip: '画质与体积平衡（推荐）' },
-  { key: 'small', label: '小体积', crf: 28, res: '1080', tip: '明显缩小体积，画质有损' }
+// 目标格式卡片
+const formats = [
+  { key: 'mp4', label: 'MP4', desc: '通用格式 · H.264', hint: '兼容性最好，推荐' },
+  { key: 'mkv', label: 'MKV', desc: '全能容器', hint: '支持多种编码/多音轨' },
+  { key: 'mov', label: 'MOV', desc: 'Apple 生态', hint: 'Mac/iPhone 友好' },
+  { key: 'avi', label: 'AVI', desc: '老式设备', hint: '兼容老旧播放器' },
+  { key: 'webm', label: 'WebM', desc: '网页播放 · VP9', hint: '体积小，浏览器直开' },
+  { key: 'gif', label: 'GIF', desc: '动画图片', hint: '15fps 动图' },
+  { key: 'mp3', label: 'MP3', desc: '提取音频', hint: '常见音乐格式' },
+  { key: 'flac', label: 'FLAC', desc: '无损音频', hint: '体积大，音质无损' },
+  { key: 'wav', label: 'WAV', desc: '无损音频', hint: '未压缩，音质最好' }
 ]
+
+// 各格式可选的视频编码器
+const vcodecMap = {
+  mp4: [
+    { value: 'h264', label: 'H.264' },
+    { value: 'h265', label: 'H.265' },
+    { value: 'mpeg4', label: 'MPEG-4' }
+  ],
+  mkv: [
+    { value: 'h264', label: 'H.264' },
+    { value: 'h265', label: 'H.265' },
+    { value: 'vp9', label: 'VP9' },
+    { value: 'av1', label: 'AV1' }
+  ],
+  mov: [
+    { value: 'h264', label: 'H.264' },
+    { value: 'h265', label: 'H.265' }
+  ],
+  avi: [
+    { value: 'mpeg4', label: 'MPEG-4' },
+    { value: 'h264', label: 'H.264' }
+  ],
+  webm: [
+    { value: 'vp9', label: 'VP9' },
+    { value: 'vp8', label: 'VP8' },
+    { value: 'av1', label: 'AV1' }
+  ]
+}
+
+// 各格式可选的音频编码器
+const acodecMap = {
+  mp4: [
+    { value: 'aac', label: 'AAC' },
+    { value: 'mp3', label: 'MP3' }
+  ],
+  mov: [
+    { value: 'aac', label: 'AAC' },
+    { value: 'mp3', label: 'MP3' }
+  ],
+  mkv: [
+    { value: 'aac', label: 'AAC' },
+    { value: 'mp3', label: 'MP3' },
+    { value: 'flac', label: 'FLAC' },
+    { value: 'opus', label: 'Opus' }
+  ],
+  avi: [
+    { value: 'mp3', label: 'MP3' },
+    { value: 'aac', label: 'AAC' }
+  ],
+  webm: [
+    { value: 'opus', label: 'Opus' },
+    { value: 'vorbis', label: 'Vorbis' }
+  ],
+  mp3: [{ value: 'mp3', label: 'MP3' }],
+  flac: [{ value: 'flac', label: 'FLAC' }],
+  wav: [{ value: 'pcm', label: 'PCM' }]
+}
+
+// 各格式默认编码（gif 无音轨，a 用于兜底）
+const defaultCodec = {
+  mp4: { v: 'h264', a: 'aac' },
+  mkv: { v: 'h264', a: 'aac' },
+  mov: { v: 'h264', a: 'aac' },
+  avi: { v: 'mpeg4', a: 'mp3' },
+  webm: { v: 'vp9', a: 'opus' },
+  gif: { v: null, a: 'aac' },
+  mp3: { v: null, a: 'mp3' },
+  flac: { v: null, a: 'flac' },
+  wav: { v: null, a: 'pcm' }
+}
+
+const isAudioFormat = computed(() => ['mp3', 'flac', 'wav'].includes(format.value))
+const isGifFormat = computed(() => format.value === 'gif')
+const isVideoFormat = computed(() => !isAudioFormat.value && !isGifFormat.value)
+
+const vcodecOptions = computed(() => vcodecMap[format.value] || [])
+const acodecOptions = computed(() => acodecMap[format.value] || [])
+
+/** 切换格式：重置编码器为默认值 */
+function selectFormat(key) {
+  format.value = key
+  const def = defaultCodec[key] || {}
+  if (def.v) vcodec.value = def.v
+  if (def.a) acodec.value = def.a
+}
 
 const resolutionOptions = [
   { label: '原始', value: 'original' },
@@ -41,61 +133,27 @@ const resolutionOptions = [
   { label: '480p', value: '480' }
 ]
 
-const codecOptions = [
-  { label: 'H.264', value: 'h264', tip: '兼容性最好' },
-  { label: 'H.265', value: 'h265', tip: '压缩率更高，编码更慢' }
+const fpsOptions = [
+  { label: '原始', value: 0 },
+  { label: '24', value: 24 },
+  { label: '30', value: 30 },
+  { label: '60', value: 60 }
 ]
 
-const speedOptions = [
-  { label: '快速', value: 'fast' },
-  { label: '标准', value: 'medium' },
-  { label: '高质量', value: 'slow' }
-]
-
-function applyPreset(p) {
-  preset.value = p.key
-  crf.value = p.crf
-  resolution.value = p.res
-}
-
-/** 用户手动修改参数后，档位切到"自定义" */
-function markCustom() {
-  preset.value = 'custom'
-}
-
-function onCrfChange(v) {
-  crf.value = v
-  markCustom()
-}
-
-function onResolutionChange(v) {
-  resolution.value = v
-  markCustom()
-}
-
-function onCodecChange(v) {
-  codec.value = v
-  markCustom()
-}
-
-function onSpeedChange(v) {
-  speed.value = v
-  markCustom()
-}
-
-/** 目标高度：0 表示不缩放 */
 const scaleHeight = computed(() => {
   if (resolution.value === 'original') return 0
   return Number(resolution.value)
 })
 
-const crfTip = computed(() => {
-  const v = crf.value
-  if (v <= 19) return '画质接近原片，压缩率较低'
-  if (v <= 24) return '画质与体积较为均衡'
-  if (v <= 28) return '画质有轻微损失，体积明显减小'
-  return '画质损失明显，体积最小'
+const qualityTip = computed(() => {
+  const q = quality.value
+  if (q >= 85) return '高画质，体积相对较大'
+  if (q >= 60) return '画质与体积均衡（推荐）'
+  if (q >= 35) return '画质有损，体积明显减小'
+  return '画质较差，体积最小'
 })
+
+const formatDesc = computed(() => formats.find((f) => f.key === format.value)?.hint || '')
 
 // ---------- 视频信息 ----------
 function formatSize(size) {
@@ -120,9 +178,9 @@ const resolutionText = computed(() =>
   videoWidth.value && videoHeight.value ? `${videoWidth.value}x${videoHeight.value}` : ''
 )
 
-/** 压缩结果对比文案 */
+/** 转码结果对比文案 */
 const resultText = computed(() => {
-  if (compressStatus.value !== 'done' || !outputSize.value) return ''
+  if (convertStatus.value !== 'done' || !outputSize.value) return ''
   const before = formatSize(sourceSize.value)
   const after = formatSize(outputSize.value)
   let ratio = ''
@@ -130,12 +188,12 @@ const resultText = computed(() => {
     const pct = (1 - outputSize.value / sourceSize.value) * 100
     ratio = pct >= 0 ? `，体积减少 ${pct.toFixed(1)}%` : `，体积增加 ${(-pct).toFixed(1)}%`
   }
-  return `压缩前 ${before} → 压缩后 ${after}${ratio}`
+  return `转码前 ${before} → 转码后 ${after}${ratio}`
 })
 
 function handleFile(file) {
-  if (!file.type.startsWith('video/')) {
-    message.warning('请选择视频文件')
+  if (!file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
+    message.warning('请选择视频或音频文件')
     return
   }
   videoFile.value = file
@@ -152,9 +210,9 @@ function resetVideo() {
   videoHeight.value = 0
   sourceSize.value = 0
   outputSize.value = 0
-  compressStatus.value = 'idle'
-  compressProgress.value = 0
-  compressMessage.value = ''
+  convertStatus.value = 'idle'
+  convertProgress.value = 0
+  convertMessage.value = ''
 }
 
 function onLoadedMetadata() {
@@ -163,18 +221,18 @@ function onLoadedMetadata() {
   videoHeight.value = videoEl.value?.videoHeight || 0
 }
 
-/** 重新选择视频前弹出确认框 */
+/** 重新选择文件前弹出确认框 */
 function confirmResetVideo() {
   dialog.warning({
-    title: '重新选择视频',
-    content: '确定重新选择视频吗？当前压缩设置将保留。',
+    title: '重新选择文件',
+    content: '确定重新选择文件吗？当前转码设置将保留。',
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: resetVideo
   })
 }
 
-// ---------- 压缩导出 ----------
+// ---------- 转码导出 ----------
 let offProgress = null
 let offDone = null
 let offError = null
@@ -184,20 +242,20 @@ onMounted(() => {
     if (p) outputDir.value = p
   })
 
-  offProgress = window.api?.onCompressProgress((data) => {
-    compressProgress.value = data.percent
-    compressMessage.value = data.message
+  offProgress = window.api?.onConvertProgress((data) => {
+    convertProgress.value = data.percent
+    convertMessage.value = data.message
   })
-  offDone = window.api?.onCompressDone((data) => {
-    isCompressing.value = false
-    compressStatus.value = 'done'
+  offDone = window.api?.onConvertDone((data) => {
+    isConverting.value = false
+    convertStatus.value = 'done'
     outputSize.value = data.outputSize || 0
-    compressMessage.value = `已导出：${data.outputPath}`
+    convertMessage.value = `已导出：${data.outputPath}`
   })
-  offError = window.api?.onCompressError((data) => {
-    isCompressing.value = false
-    compressStatus.value = 'error'
-    compressMessage.value = `压缩失败：${data.message}`
+  offError = window.api?.onConvertError((data) => {
+    isConverting.value = false
+    convertStatus.value = 'error'
+    convertMessage.value = `转码失败：${data.message}`
   })
 })
 
@@ -208,11 +266,11 @@ onUnmounted(() => {
   if (videoUrl.value) URL.revokeObjectURL(videoUrl.value)
 })
 
-const canCompress = computed(() => !!videoFile.value && !isCompressing.value && !!outputDir.value)
+const canConvert = computed(() => !!videoFile.value && !isConverting.value && !!outputDir.value)
 
 const progressColor = computed(() => {
-  if (compressStatus.value === 'error') return '#dc2626'
-  if (compressStatus.value === 'done') return '#22c55e'
+  if (convertStatus.value === 'error') return '#dc2626'
+  if (convertStatus.value === 'done') return '#22c55e'
   return '#2563eb'
 })
 
@@ -227,9 +285,9 @@ async function selectOutputDir() {
   }
 }
 
-async function applyCompress() {
+async function applyConvert() {
   if (!videoFile.value) {
-    message.warning('请先选择视频')
+    message.warning('请先选择文件')
     return
   }
   if (!outputDir.value) {
@@ -239,74 +297,103 @@ async function applyCompress() {
 
   const inputPath = window.api?.getPathForFile(videoFile.value)
   if (!inputPath) {
-    compressStatus.value = 'error'
-    compressMessage.value = '无法获取视频文件路径'
+    convertStatus.value = 'error'
+    convertMessage.value = '无法获取文件路径'
     return
   }
 
-  compressStatus.value = 'running'
-  compressProgress.value = 0
-  compressMessage.value = '准备压缩...'
-  isCompressing.value = true
+  convertStatus.value = 'running'
+  convertProgress.value = 0
+  convertMessage.value = '准备转码...'
+  isConverting.value = true
 
-  const res = await window.api?.compressVideo({
+  const res = await window.api?.convertVideo({
     inputPath,
     outputDir: outputDir.value,
-    codec: codec.value,
-    crf: crf.value,
+    format: format.value,
+    vcodec: isVideoFormat.value ? vcodec.value : null,
+    acodec: acodec.value,
+    quality: quality.value,
     scaleHeight: scaleHeight.value,
-    preset: speed.value,
+    fps: fps.value,
     keepAudio: keepAudio.value,
     duration: duration.value
   })
 
   if (res && res.canceled) {
-    isCompressing.value = false
-    compressStatus.value = 'idle'
-    compressMessage.value = ''
+    isConverting.value = false
+    convertStatus.value = 'idle'
+    convertMessage.value = ''
   }
 }
+
+// 切换格式时，若该格式不支持当前编码器则回退默认
+watch(format, () => {
+  const def = defaultCodec[format.value] || {}
+  if (def.v && !vcodecOptions.value.find((o) => o.value === vcodec.value)) vcodec.value = def.v
+  if (!acodecOptions.value.find((o) => o.value === acodec.value)) acodec.value = def.a
+})
 </script>
 
 <template>
   <div class="page">
-    <!-- 未选择视频：上传区 -->
+    <!-- 未选择文件：上传区 -->
     <div v-if="!videoFile" class="upload-wrap">
       <UploadZone
-        button-text="选择视频"
-        :tips="['点击或拖拽一个视频到此', '压缩后可显著减小文件体积']"
-        accept="video/*"
+        button-text="选择文件"
+        :tips="[
+          '点击或拖拽视频/音频到此',
+          '支持转码为 MP4/MKV/MOV/AVI/WebM/GIF，或提取 MP3/FLAC/WAV 音频'
+        ]"
+        accept="video/*,audio/*"
         @select="handleFile"
       />
     </div>
 
-    <!-- 已选择视频 -->
-    <div v-else class="compress-view">
+    <!-- 已选择文件 -->
+    <div v-else class="convert-view">
       <div class="split">
         <!-- 左列：预览 -->
         <div class="split-left">
           <div class="preview-wrap">
             <video
+              v-if="videoFile.type.startsWith('video/')"
               ref="videoEl"
               :src="videoUrl"
               controls
               class="preview-video"
               @loadedmetadata="onLoadedMetadata"
             ></video>
+            <div v-else class="audio-preview">
+              <svg
+                class="audio-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M9 18V6l10-2v12M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zm10-2a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"
+                />
+              </svg>
+              <span class="audio-preview-name" :title="videoFile.name">{{ videoFile.name }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- 右栏：压缩设置 -->
+        <!-- 右栏：转码设置 -->
         <div class="split-right">
-          <div class="compress-panel right-panel">
-            <!-- 视频信息 -->
+          <div class="convert-panel right-panel">
+            <!-- 文件信息 -->
             <div class="info-block">
               <div class="file-name-row">
                 <div class="file-name" :title="videoFile.name">{{ videoFile.name }}</div>
                 <button
                   type="button"
                   class="reset-btn"
-                  :disabled="isCompressing"
+                  :disabled="isConverting"
                   @click="confirmResetVideo"
                 >
                   更换
@@ -324,56 +411,55 @@ async function applyCompress() {
               </div>
             </div>
 
-            <!-- 快捷档位 -->
+            <!-- 目标格式 -->
             <div class="setting-block">
-              <div class="setting-title">快捷档位</div>
-              <div class="preset-grid">
+              <div class="setting-title">目标格式</div>
+              <div class="format-grid">
                 <button
-                  v-for="p in qualityPresets"
-                  :key="p.key"
+                  v-for="f in formats"
+                  :key="f.key"
                   type="button"
-                  class="preset-btn"
-                  :class="{ active: preset === p.key }"
-                  :title="p.tip"
-                  @click="applyPreset(p)"
+                  class="format-btn"
+                  :class="{ active: format === f.key }"
+                  :title="f.hint"
+                  @click="selectFormat(f.key)"
                 >
-                  {{ p.label }}
-                </button>
-                <button
-                  type="button"
-                  class="preset-btn"
-                  :class="{ active: preset === 'custom' }"
-                  @click="preset = 'custom'"
-                >
-                  自定义
+                  <span class="format-label">{{ f.label }}</span>
+                  <span class="format-desc">{{ f.desc }}</span>
                 </button>
               </div>
-              <p class="setting-tip">
-                {{
-                  qualityPresets.find((p) => p.key === preset)?.tip || '自由调整下方参数进行压缩'
-                }}
-              </p>
+              <p class="setting-tip">{{ formatDesc }}</p>
             </div>
 
-            <!-- CRF 画质 -->
-            <div class="setting-block">
+            <!-- 视频编码器（视频格式） -->
+            <div v-if="isVideoFormat" class="setting-block">
+              <div class="setting-title">视频编码器</div>
+              <div class="opt-group">
+                <button
+                  v-for="opt in vcodecOptions"
+                  :key="opt.value"
+                  type="button"
+                  class="opt-btn"
+                  :class="{ active: vcodec === opt.value }"
+                  @click="vcodec = opt.value"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 画质（视频格式，非 GIF） -->
+            <div v-if="isVideoFormat" class="setting-block">
               <div class="setting-title-row">
-                <span class="setting-title">画质 (CRF)</span>
-                <span class="setting-value">{{ crf }}</span>
+                <span class="setting-title">画质</span>
+                <span class="setting-value">{{ quality }}</span>
               </div>
-              <n-slider
-                v-model:value="crf"
-                :min="18"
-                :max="32"
-                :step="1"
-                :tooltip="false"
-                @update:value="onCrfChange"
-              />
-              <p class="setting-tip">{{ crfTip }}</p>
+              <n-slider v-model:value="quality" :min="10" :max="100" :step="1" :tooltip="false" />
+              <p class="setting-tip">{{ qualityTip }}</p>
             </div>
 
-            <!-- 分辨率 -->
-            <div class="setting-block">
+            <!-- 分辨率（视频格式） -->
+            <div v-if="isVideoFormat" class="setting-block">
               <div class="setting-title">分辨率</div>
               <div class="opt-group">
                 <button
@@ -382,52 +468,51 @@ async function applyCompress() {
                   type="button"
                   class="opt-btn"
                   :class="{ active: resolution === opt.value }"
-                  @click="onResolutionChange(opt.value)"
+                  @click="resolution = opt.value"
                 >
                   {{ opt.label }}
                 </button>
               </div>
             </div>
 
-            <!-- 编码器 -->
-            <div class="setting-block">
-              <div class="setting-title">编码器</div>
+            <!-- 帧率（视频格式，非 GIF） -->
+            <div v-if="isVideoFormat && !isGifFormat" class="setting-block">
+              <div class="setting-title">帧率</div>
               <div class="opt-group">
                 <button
-                  v-for="opt in codecOptions"
+                  v-for="opt in fpsOptions"
                   :key="opt.value"
                   type="button"
                   class="opt-btn"
-                  :class="{ active: codec === opt.value }"
-                  @click="onCodecChange(opt.value)"
+                  :class="{ active: fps === opt.value }"
+                  @click="fps = opt.value"
                 >
                   {{ opt.label }}
                 </button>
               </div>
-              <p class="setting-tip">{{ codecOptions.find((o) => o.value === codec)?.tip }}</p>
             </div>
 
-            <!-- 编码速度 -->
+            <!-- 音频编码器 -->
             <div class="setting-block">
-              <div class="setting-title">编码速度</div>
+              <div class="setting-title">音频编码器</div>
               <div class="opt-group">
                 <button
-                  v-for="opt in speedOptions"
+                  v-for="opt in acodecOptions"
                   :key="opt.value"
                   type="button"
                   class="opt-btn"
-                  :class="{ active: speed === opt.value }"
-                  @click="onSpeedChange(opt.value)"
+                  :class="{ active: acodec === opt.value }"
+                  @click="acodec = opt.value"
                 >
                   {{ opt.label }}
                 </button>
               </div>
             </div>
 
-            <!-- 音轨 -->
-            <div class="setting-block row">
+            <!-- 保留音轨（视频格式，非 GIF） -->
+            <div v-if="isVideoFormat && !isGifFormat" class="setting-block row">
               <span class="setting-title">保留音轨</span>
-              <n-switch v-model:value="keepAudio" size="small" @update:value="markCustom" />
+              <n-switch v-model:value="keepAudio" size="small" />
             </div>
 
             <!-- 保存目录 -->
@@ -443,7 +528,7 @@ async function applyCompress() {
                 class="output-dir-btn"
                 quaternary
                 circle
-                :disabled="isCompressing"
+                :disabled="isConverting"
                 @click="selectOutputDir"
               >
                 <template #icon>
@@ -469,28 +554,28 @@ async function applyCompress() {
                 type="primary"
                 size="large"
                 block
-                :disabled="!canCompress"
-                @click="applyCompress"
+                :disabled="!canConvert"
+                @click="applyConvert"
               >
-                {{ isCompressing ? '压缩中...' : '开始压缩' }}
+                {{ isConverting ? '转码中...' : '开始转码' }}
               </n-button>
             </div>
 
             <!-- 进度 / 结果 -->
             <div
-              v-if="compressStatus !== 'idle'"
-              class="compress-progress"
-              :class="'compress-' + compressStatus"
+              v-if="convertStatus !== 'idle'"
+              class="convert-progress"
+              :class="'convert-' + convertStatus"
             >
               <n-progress
                 type="line"
-                :percentage="compressProgress"
+                :percentage="convertProgress"
                 :height="8"
                 :show-indicator="false"
                 :color="progressColor"
                 rail-color="#e2e8f0"
               />
-              <p class="progress-message">{{ compressMessage }}</p>
+              <p class="progress-message">{{ convertMessage }}</p>
               <p v-if="resultText" class="result-text">{{ resultText }}</p>
             </div>
           </div>
@@ -518,8 +603,8 @@ async function applyCompress() {
   align-items: center;
 }
 
-/* ---------- 压缩视图 ---------- */
-.compress-view {
+/* ---------- 转码视图 ---------- */
+.convert-view {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -575,8 +660,31 @@ async function applyCompress() {
   object-fit: contain;
 }
 
+.audio-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #64748b;
+}
+
+.audio-icon {
+  width: 72px;
+  height: 72px;
+  opacity: 0.7;
+}
+
+.audio-preview-name {
+  max-width: 420px;
+  font-size: 13px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---------- 右栏设置面板 ---------- */
-.compress-panel {
+.convert-panel {
   flex: 1;
   min-height: 0;
   padding: 20px;
@@ -586,7 +694,7 @@ async function applyCompress() {
   background-color: #ffffff;
 }
 
-/* 视频信息 */
+/* 文件信息 */
 .info-block {
   padding: 12px 14px;
   border-radius: 10px;
@@ -699,20 +807,23 @@ async function applyCompress() {
   line-height: 1.5;
 }
 
-/* 快捷档位按钮 */
-.preset-grid {
+/* 格式卡片 */
+.format-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
-.preset-btn {
-  padding: 8px 0;
+.format-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background-color: #ffffff;
   color: #475569;
-  font-size: 13px;
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -720,16 +831,29 @@ async function applyCompress() {
     color 0.15s;
 }
 
-.preset-btn:hover {
+.format-btn:hover {
   border-color: #93c5fd;
   color: #2563eb;
 }
 
-.preset-btn.active {
+.format-btn.active {
   border-color: #2563eb;
   background-color: #eff6ff;
   color: #2563eb;
-  font-weight: 600;
+}
+
+.format-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.format-desc {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.format-btn.active .format-desc {
+  color: #60a5fa;
 }
 
 /* 选项按钮组（替代 radio-group，规避 naive-ui splitor key 冲突） */
@@ -807,7 +931,7 @@ async function applyCompress() {
   margin-top: 16px;
 }
 
-.compress-progress {
+.convert-progress {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -832,7 +956,7 @@ async function applyCompress() {
   color: #16a34a;
 }
 
-.compress-error .progress-message {
+.convert-error .progress-message {
   color: #dc2626;
 }
 </style>

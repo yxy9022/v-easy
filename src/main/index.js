@@ -6,6 +6,7 @@ import { cropVideo } from './crop'
 import { removeWatermark } from './watermark'
 import { mergeVideos } from './merge'
 import { compressVideo } from './compress'
+import { convertVideo } from './convert'
 
 function createWindow() {
   // Create the browser window.
@@ -180,6 +181,32 @@ app.whenReady().then(() => {
     }
 
     await compressVideo(event, { ...payload, outputPath })
+    return { canceled: false }
+  })
+
+  // 视频转码：先让用户选择保存路径，再启动 ffmpeg 任务
+  ipcMain.handle('convert:start', async (event, payload) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    let outputPath = payload.outputPath
+    const ext = payload.format || 'mp4'
+
+    // 已预选保存目录：自动生成文件名
+    if (!outputPath && payload.outputDir) {
+      outputPath = join(payload.outputDir, `转码结果_${Date.now()}.${ext}`)
+    }
+
+    // 未指定输出路径：弹出保存对话框
+    if (!outputPath) {
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: '保存转码后的文件',
+        defaultPath: `转码结果_${Date.now()}.${ext}`,
+        filters: [{ name: `${ext.toUpperCase()} 文件`, extensions: [ext] }]
+      })
+      if (canceled || !filePath) return { canceled: true }
+      outputPath = filePath
+    }
+
+    await convertVideo(event, { ...payload, outputPath })
     return { canceled: false }
   })
 
