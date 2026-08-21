@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { cropVideo } from './crop'
 import { removeWatermark } from './watermark'
+import { mergeVideos } from './merge'
 
 function createWindow() {
   // Create the browser window.
@@ -128,6 +129,31 @@ app.whenReady().then(() => {
     }
 
     await removeWatermark(event, { ...payload, outputPath })
+    return { canceled: false }
+  })
+
+  // 视频合并：先让用户选择保存路径，再启动 ffmpeg 任务
+  ipcMain.handle('merge:start', async (event, payload) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    let outputPath = payload.outputPath
+
+    // 已预选保存目录：自动生成文件名
+    if (!outputPath && payload.outputDir) {
+      outputPath = join(payload.outputDir, `合并结果_${Date.now()}.mp4`)
+    }
+
+    // 未指定输出路径：弹出保存对话框
+    if (!outputPath) {
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: '保存合并后的视频',
+        defaultPath: `合并结果_${Date.now()}.mp4`,
+        filters: [{ name: 'MP4 视频', extensions: ['mp4'] }]
+      })
+      if (canceled || !filePath) return { canceled: true }
+      outputPath = filePath
+    }
+
+    await mergeVideos(event, { ...payload, outputPath })
     return { canceled: false }
   })
 

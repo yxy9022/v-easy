@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 
-defineProps({
+const props = defineProps({
   // 文件选择器的 accept，如 'video/*'、'image/*'、'.mp4,.mov'
   accept: { type: String, default: 'video/*' },
   multiple: { type: Boolean, default: false },
@@ -13,7 +13,7 @@ defineProps({
   tips: { type: Array, default: () => [] }
 })
 
-// 选中/拖入单个文件后触发，类型校验由使用方负责
+// 选中/拖入文件后触发：multiple 时回调 File[]，否则回调单个 File，类型校验由使用方负责
 const emit = defineEmits(['select'])
 
 const fileInput = ref(null)
@@ -24,8 +24,8 @@ function openFilePicker() {
 }
 
 function onFileChange(e) {
-  const file = e.target.files[0]
-  if (file) emit('select', file)
+  const files = Array.from(e.target.files || [])
+  if (files.length) emit('select', props.multiple ? files : files[0])
   // 重置 input 值，便于再次选择同一文件时仍能触发 change
   e.target.value = ''
 }
@@ -42,8 +42,8 @@ function onDragLeave() {
 function onDrop(e) {
   e.preventDefault()
   isDragging.value = false
-  const file = e.dataTransfer.files[0]
-  if (file) emit('select', file)
+  const files = Array.from(e.dataTransfer.files || [])
+  if (files.length) emit('select', props.multiple ? files : files[0])
 }
 </script>
 

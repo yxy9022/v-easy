@@ -43,6 +43,23 @@ const api = {
     const listener = (_e, data) => cb(data)
     ipcRenderer.on('watermark:error', listener)
     return () => ipcRenderer.removeListener('watermark:error', listener)
+  },
+  // 启动合并任务（主进程会弹保存对话框），返回 { canceled }
+  mergeVideos: (payload) => ipcRenderer.invoke('merge:start', payload),
+  onMergeProgress: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('merge:progress', listener)
+    return () => ipcRenderer.removeListener('merge:progress', listener)
+  },
+  onMergeDone: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('merge:done', listener)
+    return () => ipcRenderer.removeListener('merge:done', listener)
+  },
+  onMergeError: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('merge:error', listener)
+    return () => ipcRenderer.removeListener('merge:error', listener)
   }
 }
 

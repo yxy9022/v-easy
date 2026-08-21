@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import PlaceholderPage from './pages/PlaceholderPage.vue'
 import WatermarkPage from './pages/WatermarkPage.vue'
 import CropPage from './pages/CropPage.vue'
+import MergePage from './pages/MergePage.vue'
 
 // 全局 Naive UI 主题：统一主色为蓝色，避免组件（如 n-switch 激活态）默认绿色与页面风格不一致
 const themeOverrides = {
@@ -32,7 +33,7 @@ const menus = [
     key: 'merge',
     label: '视频合并',
     icon: 'M9 3v18M3 12h12m0 0-4-4m4 4-4 4',
-    component: PlaceholderPage
+    component: MergePage
   },
   {
     key: 'compress',
