@@ -14,6 +14,7 @@ function createWindow() {
     width: 900,
     height: 670,
     show: false,
+    title: 'v-easy',
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -28,7 +29,10 @@ function createWindow() {
     }
   })
 
-  mainWindow.webContents.openDevTools()
+  // 仅开发环境自动打开 DevTools，生产环境保持干净
+  if (is.dev) {
+    mainWindow.webContents.openDevTools()
+  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -53,7 +57,7 @@ function createWindow() {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.electron.app')
 
   // macOS dev 模式下 Dock 图标默认是 Electron 图标，这里设为应用图标便于预览
   if (process.platform === 'darwin' && is.dev) {
