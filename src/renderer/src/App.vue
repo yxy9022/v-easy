@@ -4,6 +4,7 @@ import PlaceholderPage from './pages/PlaceholderPage.vue'
 import WatermarkPage from './pages/WatermarkPage.vue'
 import CropPage from './pages/CropPage.vue'
 import MergePage from './pages/MergePage.vue'
+import CompressPage from './pages/CompressPage.vue'
 
 // 全局 Naive UI 主题：统一主色为蓝色，避免组件（如 n-switch 激活态）默认绿色与页面风格不一致
 const themeOverrides = {
@@ -39,7 +40,7 @@ const menus = [
     key: 'compress',
     label: '视频压缩',
     icon: 'M12 3v10m0 0 4-4m-4 4-4-4M3 21h18',
-    component: PlaceholderPage
+    component: CompressPage
   },
   {
     key: 'convert',

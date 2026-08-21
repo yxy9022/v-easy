@@ -60,6 +60,23 @@ const api = {
     const listener = (_e, data) => cb(data)
     ipcRenderer.on('merge:error', listener)
     return () => ipcRenderer.removeListener('merge:error', listener)
+  },
+  // 启动压缩任务（主进程会弹保存对话框），返回 { canceled }
+  compressVideo: (payload) => ipcRenderer.invoke('compress:start', payload),
+  onCompressProgress: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('compress:progress', listener)
+    return () => ipcRenderer.removeListener('compress:progress', listener)
+  },
+  onCompressDone: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('compress:done', listener)
+    return () => ipcRenderer.removeListener('compress:done', listener)
+  },
+  onCompressError: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('compress:error', listener)
+    return () => ipcRenderer.removeListener('compress:error', listener)
   }
 }
 
