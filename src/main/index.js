@@ -58,7 +58,7 @@ function createWindow() {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron.app')
+  electronApp.setAppUserModelId('com.yxy9022.app')
 
   // macOS dev 模式下 Dock 图标默认是 Electron 图标，这里设为应用图标便于预览
   if (process.platform === 'darwin' && is.dev) {

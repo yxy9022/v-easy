@@ -1,13 +1,13 @@
-appId: com.electron.app
+appId: com.yxy9022.app
 productName: v-easy
 directories:
   buildResources: build
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
 asarUnpack:
   - resources/**
   - node_modules/ffmpeg-static/**
@@ -19,13 +19,15 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  category: public.app-category.utilities
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
+  # notarize 默认行为：检测到 APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+  # 环境变量时自动公证，未配置则跳过（不在本地/CI 报错）。无需显式设为 false。
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -38,8 +40,9 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
+# GitHub Releases 分发：electron-builder 会从 package.json 的 repository 推断仓库，
+# 发布命令：GH_TOKEN=<token> npm run build:mac -- --publish=always
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

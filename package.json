@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "An Electron application with Vue",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "yxy9022",
+  "homepage": "https://github.com/yxy9022/v-easy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yxy9022/v-easy.git"
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
