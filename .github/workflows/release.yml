@@ -19,8 +19,6 @@ jobs:
         with:
           node-version: 22
 
-      # 不用 npm ci：lock 仅在 macOS 生成，缺少 Windows 平台的 rollup 原生二进制。
-      # 改用 npm install 让 npm 按当前 runner 平台自动安装对应 optionalDependency。
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
@@ -34,6 +32,8 @@ jobs:
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
   # 第二个 job：Windows 等 macOS 发布完成后，只上传资产到同一个 Release
+  # package.json 的 optionalDependencies 已显式声明双平台 rollup 原生包，
+  # 因此这里直接用 npm install 即可，无需删除 lock 或手动补装。
   release-win:
     needs: release-mac
     runs-on: windows-latest
@@ -46,16 +46,8 @@ jobs:
         with:
           node-version: 22
 
-      # package-lock.json 在 macOS 生成，会锁死平台导致 Windows 上缺失
-      # rollup 原生二进制（npm optional dependency bug）。按 npm 官方建议，
-      # 删除 lock 与 node_modules 后重新 install，让 npm 按当前平台解析依赖。
       - name: Install dependencies
-        shell: bash
-        run: |
-          rm -f package-lock.json
-          rm -rf node_modules
-          npm install --no-audit --no-fund
-          npm install --no-audit --no-fund @rollup/rollup-win32-x64-msvc
+        run: npm install --no-audit --no-fund
 
       - name: Build & Upload (Windows)
         run: npm run build:win -- --publish=onTagOrDraft
