@@ -53,3 +53,33 @@ jobs:
         run: npm run build:win -- --publish=onTagOrDraft
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  # 第三个 job：等 mac/win 的 assets 全部上传完成后，
+  # 把 electron-builder 创建的草稿 Release 转正为正式发布。
+  # （直接让 electron-builder 发正式 Release 会因 tag 尚未生效而报 422）
+  publish-release:
+    needs: [release-mac, release-win]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "发布 tag: $TAG"
+          API="https://api.github.com/repos/${{ github.repository }}"
+          # 等待 GitHub 侧 tag 生效
+          sleep 10
+          RELEASE_ID=$(curl -s -H "Authorization: token $GH_TOKEN" "$API/releases/tags/$TAG" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const r=JSON.parse(s);console.log(r.id||'')})")
+          if [ -z "$RELEASE_ID" ]; then
+            echo "未找到 $TAG 对应的 Release"
+            exit 1
+          fi
+          echo "Release ID: $RELEASE_ID"
+          curl -s -X PATCH -H "Authorization: token $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"draft":false}' \
+            "$API/releases/$RELEASE_ID" > /dev/null
+          echo "✅ 已发布为正式 Release: $TAG"
