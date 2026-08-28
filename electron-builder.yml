@@ -44,5 +44,7 @@ npmRebuild: false
 # 发布命令：GH_TOKEN=<token> npm run build:mac -- --publish=always
 publish:
   provider: github
+  # 直接发布为正式 Release，避免每次都生成草稿需要手动点击发布
+  releaseType: release
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
