@@ -33,6 +33,14 @@ function createWindow() {
   // 仅开发环境自动打开 DevTools，生产环境保持干净
   if (is.dev) {
     mainWindow.webContents.openDevTools()
+  } else {
+    // 生产环境彻底禁用 DevTools 快捷键（F12 / Cmd+Shift+I / Cmd+Option+I）
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      const isDevtoolsKey =
+        input.key === 'F12' ||
+        ((input.control || input.meta) && input.shift && (input.key === 'I' || input.key === 'i'))
+      if (isDevtoolsKey) event.preventDefault()
+    })
   }
 
   mainWindow.on('ready-to-show', () => {

@@ -17,10 +17,19 @@
 set -euo pipefail
 
 # 读取同目录 .env（若存在），用于本地保存 GH_TOKEN 等，请勿提交到 git
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
   # shellcheck disable=SC1090
+  set -a
   source "$SCRIPT_DIR/.env"
+  set +a
+fi
+
+# 调试：确认 token 已加载
+if [[ -n "${GH_TOKEN:-}" ]]; then
+  echo "✓ 已加载 GH_TOKEN（长度 ${#GH_TOKEN}）"
+else
+  echo "⚠ 未检测到 GH_TOKEN"
 fi
 
 PLATFORM="${1:-mac}"
