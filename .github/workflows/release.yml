@@ -46,8 +46,13 @@ jobs:
           node-version: 22
           cache: npm
 
+      # npm 的 optional dependency bug 会导致 Windows 上 rollup 原生二进制
+      # (@rollup/rollup-win32-x64-msvc) 未被安装，这里用 npm install 重建，
+      # 并显式确保 rollup 平台包存在
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm install --include=optional @rollup/rollup-win32-x64-msvc
 
       - name: Build & Upload (Windows)
         run: npm run build:win -- --publish=onTagOrDraft
