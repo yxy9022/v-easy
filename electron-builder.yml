@@ -14,11 +14,13 @@ asarUnpack:
 win:
   executableName: v-easy
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  # 控制 zip 产物命名（dmg 由下方 dmg.artifactName 单独指定，优先级更高）
+  artifactName: ${productName}-${version}-${arch}-mac.${ext}
   category: public.app-category.utilities
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -29,7 +31,7 @@ mac:
   # notarize 默认行为：检测到 APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
   # 环境变量时自动公证，未配置则跳过（不在本地/CI 报错）。无需显式设为 false。
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${productName}-${version}.${ext}
 linux:
   target:
     - AppImage
@@ -38,7 +40,7 @@ linux:
   maintainer: electronjs.org
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${productName}-${version}.${ext}
 npmRebuild: false
 # GitHub Releases 分发：electron-builder 会从 package.json 的 repository 推断仓库，
 # 发布命令：GH_TOKEN=<token> npm run build:mac -- --publish=always
