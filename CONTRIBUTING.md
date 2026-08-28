@@ -75,16 +75,8 @@ CI 发布流程（`.github/workflows/release.yml`）分三步：
 未配置 Apple 相关变量时跳过公证，产物为未公证状态，
 用户需在「系统设置 → 隐私与安全性」中点击「仍要打开」（详见 README）。
 
-### 本地发布
-
-使用发布脚本（从 `.env` 读取 `GH_TOKEN`，`.env` 已被 git 忽略，不要提交）：
-
-```bash
-./release.sh              # 发布 macOS 版
-./release.sh win          # 发布 Windows 版
-./release.sh win 1.0.2    # 先改版本号再发布
-./release.sh --dry        # 仅打包不发布
-```
+所有发布均通过 GitHub Actions 完成，本地无需保存任何 token，
+请勿在仓库中创建 `.env` 存放 `GH_TOKEN`（`.env` 已被 git 忽略）。
 
 ## 项目结构
 
