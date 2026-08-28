@@ -46,8 +46,15 @@ jobs:
         with:
           node-version: 22
 
+      # package-lock.json 在 macOS 生成，会锁死平台导致 Windows 上缺失
+      # rollup 原生二进制（npm optional dependency bug）。按 npm 官方建议，
+      # 删除 lock 与 node_modules 后重新 install，让 npm 按当前平台解析依赖。
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: |
+          rm -f package-lock.json
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund @rollup/rollup-win32-x64-msvc
 
       - name: Build & Upload (Windows)
         run: npm run build:win -- --publish=onTagOrDraft
