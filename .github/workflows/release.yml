@@ -7,13 +7,9 @@ on:
   workflow_dispatch:  # 允许在 Actions 页面手动触发
 
 jobs:
-  release:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-
+  # 第一个 job：macOS 创建 Release 并上传安装包
+  release-mac:
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +24,6 @@ jobs:
         run: npm ci
 
       - name: Build & Publish (macOS)
-        if: matrix.os == 'macos-latest'
         run: npm run build:mac -- --publish=always
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -37,8 +32,24 @@ jobs:
           # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Build & Publish (Windows)
-        if: matrix.os == 'windows-latest'
-        run: npm run build:win -- --publish=always
+  # 第二个 job：Windows 等 macOS 发布完成后，只上传资产到同一个 Release
+  release-win:
+    needs: release-mac
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & Upload (Windows)
+        run: npm run build:win -- --publish=onTagOrDraft
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
