@@ -21,6 +21,12 @@ nsis:
 mac:
   # 控制 zip 产物命名（dmg 由下方 dmg.artifactName 单独指定，优先级更高）
   artifactName: ${productName}-${version}-${arch}-mac.${ext}
+  # 无 Apple 开发者证书时使用 ad-hoc 签名（"-"）。
+  # 必须签名而不能设为 null：asarUnpack 解包 ffmpeg 后，Electron 框架自带的签名
+  # 与实际资源不符，macOS 会判定应用「已损坏」且无法打开；ad-hoc 深度签名会
+  # 覆盖全部嵌套内容（含解包的 ffmpeg），使产物可被右键 → 打开正常运行。
+  identity: '-'
+  hardenedRuntime: false
   category: public.app-category.utilities
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
