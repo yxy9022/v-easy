@@ -72,7 +72,8 @@ CI 发布流程（`.github/workflows/release.yml`）分三步：
 | `APPLE_APP_SPECIFIC_PASSWORD` | 可选。macOS 公证用 |
 | `APPLE_TEAM_ID` | 可选。macOS 公证用 |
 
-未配置 Apple 相关变量时跳过公证，产物为未公证状态，用户需右键 → 打开。
+未配置 Apple 相关变量时跳过公证，产物为未公证状态，
+用户需在「系统设置 → 隐私与安全性」中点击「仍要打开」（详见 README）。
 
 ### 本地发布
 
