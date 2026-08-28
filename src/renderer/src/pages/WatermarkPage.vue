@@ -175,7 +175,7 @@ async function toggleFullscreen() {
     } else {
       await el.requestFullscreen()
     }
-  } catch (err) {
+  } catch {
     message.warning('全屏切换失败')
   }
 }
@@ -222,9 +222,25 @@ function updateDispRect() {
   if (!wrap || !videoWidth.value || !videoHeight.value) return
   const wrapRect = wrap.getBoundingClientRect()
   const scale = Math.min(wrapRect.width / videoWidth.value, wrapRect.height / videoHeight.value)
-  stageSize.value = {
-    w: videoWidth.value * scale,
-    h: videoHeight.value * scale
+  const oldW = stageSize.value.w
+  const oldH = stageSize.value.h
+  const newW = videoWidth.value * scale
+  const newH = videoHeight.value * scale
+  stageSize.value = { w: newW, h: newH }
+  // 窗体缩放后，已框选区的显示像素需等比跟随，避免错位
+  if (oldW > 0 && oldH > 0 && (oldW !== newW || oldH !== newH)) {
+    const rx = newW / oldW
+    const ry = newH / oldH
+    regions.value.forEach((r) => {
+      const d = r.displayRect
+      r.displayRect = {
+        x: d.x * rx,
+        y: d.y * ry,
+        w: d.w * rx,
+        h: d.h * ry
+      }
+      r.sourceRect = toSourceRect(r.displayRect)
+    })
   }
 }
 
@@ -420,6 +436,14 @@ let offProgress = null
 let offDone = null
 let offError = null
 let resizeObserver = null
+let resizeTimer = null
+let onWindowResize = null
+
+// 窗口/容器尺寸变化时，防抖重算视频画面显示区域（contain 缩放）
+function scheduleUpdateDispRect() {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(updateDispRect, 60)
+}
 
 onMounted(() => {
   window.api?.getDesktopPath?.().then((p) => {
@@ -443,9 +467,12 @@ onMounted(() => {
 
   // 容器尺寸变化时重算视频画面显示区域
   if (videoWrapEl.value && typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => updateDispRect())
+    resizeObserver = new ResizeObserver(() => scheduleUpdateDispRect())
     resizeObserver.observe(videoWrapEl.value)
   }
+  // 兜底：拖拽窗体缩放时 ResizeObserver 未必触发，监听 window resize 保证视频跟随缩放
+  onWindowResize = () => scheduleUpdateDispRect()
+  window.addEventListener('resize', onWindowResize)
 })
 
 onUnmounted(() => {
@@ -453,6 +480,8 @@ onUnmounted(() => {
   offDone?.()
   offError?.()
   resizeObserver?.disconnect()
+  if (resizeTimer) clearTimeout(resizeTimer)
+  if (onWindowResize) window.removeEventListener('resize', onWindowResize)
   window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('mouseup', onMouseUp)
 })

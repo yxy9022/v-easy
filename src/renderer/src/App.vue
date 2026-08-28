@@ -6,6 +6,7 @@ import MergePage from './pages/MergePage.vue'
 import SpeedPage from './pages/SpeedPage.vue'
 import CompressPage from './pages/CompressPage.vue'
 import ConvertPage from './pages/ConvertPage.vue'
+import wechatImg from './assets/donate/wechat.png?asset'
 
 // 全局 Naive UI 主题：统一主色为蓝色，避免组件（如 n-switch 激活态）默认绿色与页面风格不一致
 const themeOverrides = {
@@ -59,6 +60,7 @@ const menus = [
 
 const activeKey = ref(menus[0].key)
 const sidebarCollapsed = ref(false)
+const showDonate = ref(false)
 
 const activeMenu = computed(() => menus.find((m) => m.key === activeKey.value))
 
@@ -143,12 +145,46 @@ function toggleSidebar() {
             </svg>
           </button>
           <div class="topbar-title">{{ activeMenu.label }}</div>
+          <!-- 顶栏右侧：支持作者 -->
+          <button type="button" class="donate-btn" @click="showDonate = true">
+            <svg
+              class="donate-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"
+              />
+            </svg>
+            <span>支持作者</span>
+          </button>
         </header>
         <main class="content">
           <component :is="activeMenu.component" />
         </main>
       </div>
     </div>
+
+    <!-- 支持作者弹窗 -->
+    <n-modal
+      v-model:show="showDonate"
+      preset="card"
+      title="请作者喝咖啡 ☕"
+      :bordered="false"
+      :style="{ width: '420px', maxWidth: '92vw' }"
+    >
+      <div class="donate-slogan">本地免费、自愿打赏</div>
+      <div class="donate-codes">
+        <figure class="donate-code">
+          <img :src="wechatImg" alt="微信收款码" />
+          <figcaption>微信打赏，鼓励升级</figcaption>
+        </figure>
+      </div>
+    </n-modal>
   </n-config-provider>
 </template>
 
@@ -373,5 +409,74 @@ function toggleSidebar() {
   min-height: 0;
   overflow: hidden;
   padding: 24px 28px;
+}
+
+/* ---------- 顶栏：支持作者按钮 ---------- */
+.donate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 7px 14px;
+  border: 1px solid #fbcfe8;
+  border-radius: 999px;
+  background-color: #fff1f6;
+  color: #db2777;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.donate-btn:hover {
+  background-color: #fce7f3;
+  border-color: #f9a8d4;
+  color: #be185d;
+}
+
+.donate-icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- 支持作者弹窗 ---------- */
+.donate-slogan {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #db2777;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.donate-codes {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 12px 0;
+}
+
+.donate-code {
+  margin: 0;
+  text-align: center;
+}
+
+.donate-code img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  background-color: #ffffff;
+}
+
+.donate-code figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
 }
 </style>
