@@ -50,6 +50,7 @@ jobs:
       # rollup 原生二进制（npm optional dependency bug）。按 npm 官方建议，
       # 删除 lock 与 node_modules 后重新 install，让 npm 按当前平台解析依赖。
       - name: Install dependencies
+        shell: bash
         run: |
           rm -f package-lock.json
           rm -rf node_modules
