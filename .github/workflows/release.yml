@@ -83,3 +83,37 @@ jobs:
             -d '{"draft":false}' \
             "$API/releases/$RELEASE_ID" > /dev/null
           echo "✅ 已发布为正式 Release: $TAG"
+
+          # 清理残留的 .blockmap（应用未使用 electron-updater）。
+          # Windows 的 blockmap 已通过 nsis.differentialPackage=false 关闭；
+          # macOS 的 blockmap 由 electron-builder 在 macPackager.js 中硬编码生成
+          # （new ArchiveTarget(name, outDir, this, true)），无配置项可关闭，
+          # 因此在此处统一删除，保持 Release 页面只保留真正的安装包。
+          echo "清理 .blockmap 资产..."
+          curl -s -H "Authorization: token $GH_TOKEN" \
+            "$API/releases/$RELEASE_ID/assets?per_page=100" \
+            | node -e "
+              const https = require('https');
+              let s = '';
+              process.stdin.on('data', d => s += d);
+              process.stdin.on('end', async () => {
+                const assets = JSON.parse(s);
+                const repo = process.env.GITHUB_REPOSITORY;
+                for (const a of assets) {
+                  if (!a.name.endsWith('.blockmap')) continue;
+                  process.stdout.write('删除 ' + a.name + ' -> ');
+                  const code = await new Promise(res => {
+                    const rq = https.request({
+                      hostname: 'api.github.com',
+                      path: '/repos/' + repo + '/releases/assets/' + a.id,
+                      method: 'DELETE',
+                      headers: { Authorization: 'token ' + process.env.GH_TOKEN, 'User-Agent': 'v-easy' }
+                    }, x => res(x.statusCode));
+                    rq.on('error', () => res('error'));
+                    rq.end();
+                  });
+                  console.log(code);
+                }
+                console.log('✅ blockmap 清理完成');
+              });
+            "

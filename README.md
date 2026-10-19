@@ -6,11 +6,11 @@
 
 前往 [Releases](https://github.com/yxy9022/v-easy/releases) 页面下载对应平台的安装包。
 
-| 平台 | 下载文件 | 说明 |
-| --- | --- | --- |
-| macOS | `v-easy-<version>.dmg` | 挂载后将 `v-easy.app` 拖入「应用程序」文件夹 |
-| macOS | `v-easy-<version>-arm64-mac.zip` | 解压后直接得到 `v-easy.app`（Apple 芯片） |
-| Windows | `v-easy-<version>-setup.exe` | 双击运行安装向导 |
+| 平台    | 下载文件                         | 说明                                         |
+| ------- | -------------------------------- | -------------------------------------------- |
+| macOS   | `v-easy-<version>.dmg`           | 挂载后将 `v-easy.app` 拖入「应用程序」文件夹 |
+| macOS   | `v-easy-<version>-arm64-mac.zip` | 解压后直接得到 `v-easy.app`（Apple 芯片）    |
+| Windows | `v-easy-<version>-setup.exe`     | 双击运行安装向导                             |
 
 ### macOS 首次打开说明
 
@@ -34,6 +34,7 @@
 - 视频压缩
 - 视频转码
 - 视频加速
+- 图片去水印
 
 所有处理均在本地完成，无需上传，保护隐私。
 
@@ -52,3 +53,7 @@
 ## 开发者
 
 开发、打包与发布相关说明见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+```sh
+node scripts/doubao-wm.mjs run "/Users/yangxinyuan/Downloads/20261013.mp4"
+```

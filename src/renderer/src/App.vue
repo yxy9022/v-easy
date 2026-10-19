@@ -6,6 +6,7 @@ import MergePage from './pages/MergePage.vue'
 import SpeedPage from './pages/SpeedPage.vue'
 import CompressPage from './pages/CompressPage.vue'
 import ConvertPage from './pages/ConvertPage.vue'
+import ImageWatermarkPage from './pages/ImageWatermarkPage.vue'
 import wechatImg from './assets/donate/wechat.png?asset'
 
 // 全局 Naive UI 主题：统一主色为蓝色，避免组件（如 n-switch 激活态）默认绿色与页面风格不一致
@@ -18,7 +19,7 @@ const themeOverrides = {
   }
 }
 
-// 视频功能菜单：新增功能时在这里加一项即可，component 为对应的处理组件
+// 功能菜单：新增功能时在这里加一项即可，component 为对应的处理组件
 const menus = [
   {
     key: 'crop',
@@ -55,6 +56,12 @@ const menus = [
     label: '视频转码',
     icon: 'M4 9h13m0 0-4-4m4 4-4 4M20 15H7m0 0 4 4m-4-4 4-4',
     component: ConvertPage
+  },
+  {
+    key: 'image-watermark',
+    label: '图片去水印',
+    icon: 'M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 16l5-5 4 4 3-3 6 6',
+    component: ImageWatermarkPage
   }
 ]
 

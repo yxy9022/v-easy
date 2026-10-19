@@ -111,6 +111,25 @@ const api = {
     const listener = (_e, data) => cb(data)
     ipcRenderer.on('speed:error', listener)
     return () => ipcRenderer.removeListener('speed:error', listener)
+  },
+  // 探测图片尺寸，返回 { width, height }
+  probeImage: (inputPath) => ipcRenderer.invoke('image:probe', inputPath),
+  // 启动图片去水印任务（主进程会弹保存对话框），返回 { canceled }
+  removeImageWatermark: (payload) => ipcRenderer.invoke('image-watermark:start', payload),
+  onImageWatermarkProgress: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('image-watermark:progress', listener)
+    return () => ipcRenderer.removeListener('image-watermark:progress', listener)
+  },
+  onImageWatermarkDone: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('image-watermark:done', listener)
+    return () => ipcRenderer.removeListener('image-watermark:done', listener)
+  },
+  onImageWatermarkError: (cb) => {
+    const listener = (_e, data) => cb(data)
+    ipcRenderer.on('image-watermark:error', listener)
+    return () => ipcRenderer.removeListener('image-watermark:error', listener)
   }
 }
 

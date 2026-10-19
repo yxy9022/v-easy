@@ -186,7 +186,9 @@ export async function speedVideo(event, { inputPath, clips, outputPath, keepAudi
       await runFfmpeg(['-i', chunks[0], '-c', 'copy', '-movflags', '+faststart', outputPath])
     } else {
       const listPath = join(tmpDir, 'list.txt')
-      await writeFile(listPath, chunks.map((p) => `file '${p}'`).join('\n'))
+      // Windows 路径含反斜杠，在 ffmpeg concat 列表中会被当作转义字符导致解析失败，
+      // 统一替换为正斜杠（macOS/Linux 路径本就使用正斜杠，替换无副作用）
+      await writeFile(listPath, chunks.map((p) => `file '${p.replace(/\\/g, '/')}'`).join('\n'))
       await runFfmpeg([
         '-f',
         'concat',

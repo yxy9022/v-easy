@@ -18,6 +18,8 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  # 不为安装包生成增量更新用的 .blockmap（应用未使用 electron-updater）
+  differentialPackage: false
 mac:
   # 控制 zip 产物命名（dmg 由下方 dmg.artifactName 单独指定，优先级更高）
   artifactName: ${productName}-${version}-${arch}-mac.${ext}
@@ -52,6 +54,10 @@ npmRebuild: false
 # 发布命令：GH_TOKEN=<token> npm run build:mac -- --publish=always
 publish:
   provider: github
+  # 不发布 latest*.yml 等自动更新元数据（应用未使用 electron-updater）。
+  # 源码依据：updateInfoBuilder.js 中 publishAutoUpdate === false 时
+  # 直接跳过生成，日志输出 "auto update metadata file not published"。
+  publishAutoUpdate: false
   # 先用草稿模式上传（草稿不校验 tag，避免 422 "must have a valid tag" 错误），
   # 全部平台 assets 上传完成后，由 CI 的 publish-release job 调用 API 转正为正式发布。
 electronDownload:
